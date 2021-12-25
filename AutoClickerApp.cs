@@ -67,6 +67,7 @@ namespace AutoClicker
                 TrueOrFalseLabel.Text = "False";
                 BtnStart.Text = "Start (F6)";
             }
+            GitHubTest();
         }
 
         // this is called every timer tick
@@ -92,5 +93,11 @@ namespace AutoClicker
         // - move the x and y a small amount randomly to prevent detection
         // - allow for setting a certain number of clicks OR click until stop
 
+
+        // - this is to test the github branch
+        private void GitHubTest()
+        {
+            Console.WriteLine("GitHubTest");
+        }
     }
 }
