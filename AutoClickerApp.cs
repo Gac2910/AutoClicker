@@ -19,6 +19,14 @@ namespace AutoClicker
 
             RegisterHotKey(this.Handle, mActionHotKeyID, 0, (int)Keys.F6);
         }
+
+        // -------------- on load: set up default settings --------------
+        private void AutoClickerApp_Load(object sender, EventArgs e)
+        {
+            ClickButtonComboBox.SelectedIndex = 0;
+            IntervalBox.Value = 100;
+        }
+
         // -------------- this allows for global keyboard presses --------------
         const int mActionHotKeyID = 1;
 
@@ -52,22 +60,24 @@ namespace AutoClicker
         // toggle the timer and set interval value
         private void StartClicker()
         {
+            if (Timer.Enabled == true)
+            {
+                StopClicker();
+                return;
+            }
             int interval = (int)IntervalBox.Value;
-
-            if (Timer.Enabled == false)
-            {
-                Timer.Enabled = true;
-                Timer.Interval = interval;
-                TrueOrFalseLabel.Text = "True";
-                BtnStart.Text = "Stop (F6)";
-            }
-            else
-            {
-                Timer.Enabled = false;
-                TrueOrFalseLabel.Text = "False";
-                BtnStart.Text = "Start (F6)";
-            }
-            GitHubTest();
+            Timer.Enabled = true;
+            Timer.Interval = interval;
+            BtnStart.Text = "Stop (F6)";
+            this.Text = "Running - Auto Clicker App";
+            
+        }
+        private void StopClicker()
+        {
+            Timer.Enabled = false;
+            BtnStart.Text = "Start (F6)";
+            this.Text = "Stopped - Auto Clicker App";
+            clickCount = 0;
         }
 
         // this is called every timer tick
@@ -76,6 +86,10 @@ namespace AutoClicker
             DoMouseClick();
             clickCount++;
             CounterLabel.Text = clickCount.ToString();
+
+            // if limit is set check every tick if clickCount == limit
+            if (RepeatUntilLimitRadio.Checked == true)
+                if (clickCount == ClickLimitBox.Value) StopClicker();
         }
 
         // this set the current cursor position and calls mouse_event()
@@ -87,17 +101,14 @@ namespace AutoClicker
             mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, X, Y, 0, 0);
         }
 
+        private void BtnClose_Click(object sender, EventArgs e) => Close();
+
+
+
         // NOTES: study how this is working and get a good idea before continuing
         // Future plans?
         // - allow for right OR left click?
         // - move the x and y a small amount randomly to prevent detection
         // - allow for setting a certain number of clicks OR click until stop
-
-
-        // - this is to test the github branch
-        private void GitHubTest()
-        {
-            Console.WriteLine("GitHubTest");
-        }
     }
 }
