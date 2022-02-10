@@ -20,18 +20,19 @@ namespace AutoClicker
             RegisterHotKey(this.Handle, mActionHotKeyID, 0, (int)Keys.F6);
         }
 
-        // -------------- on load: set up default settings --------------
+        // -------------- on load: set up default values --------------
         private Random rnd = new Random();
+        private int originalInterval = 0;
+        private int clickCount = 0;
         private int direction = 1;
         private void AutoClickerApp_Load(object sender, EventArgs e)
         {
             ClickButtonComboBox.SelectedIndex = 0;
         }
 
-        // -------------- this allows for global keyboard presses --------------
+        // -------------- this allows to start clicker with global key press --------------
         private const int mActionHotKeyID = 1;
 
-        // importing an external method from user32.dll
         [DllImport("user32.dll")]
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int key);
 
@@ -48,16 +49,7 @@ namespace AutoClicker
             base.WndProc(ref m);
         }
 
-        // -------------- this allows for setting cursor position and cursor clicks --------------
-        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
-        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
-        //Mouse actions
-        private const int MOUSEEVENTF_LEFTDOWN = 0x02;
-        private const int MOUSEEVENTF_LEFTUP = 0x04;
-        private const int MOUSEEVENTF_RIGHTDOWN = 0x08;
-        private const int MOUSEEVENTF_RIGHTUP = 0x10;
-        private int clickCount = 0;
-
+        // -------------- this handles starting and stopping --------------
         // start button
         private void BtnStart_Click(object sender, EventArgs e) => StartClicker();
 
@@ -72,6 +64,7 @@ namespace AutoClicker
             int interval = (int)IntervalBox.Value;
             Timer.Enabled = true;
             Timer.Interval = interval;
+            originalInterval = interval;
             BtnStart.Text = "Stop (F6)";
             BtnStart.BackColor = Color.DarkRed;
             this.Text = "Running - Auto Clicker App";
@@ -86,27 +79,42 @@ namespace AutoClicker
             clickCount = 0;
         }
 
-        // this is called every timer tick when timer is enabled
+        // -------------- this handles the clicking --------------
+        // this imported function does the actual click
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
+
+        private const int MOUSEEVENTF_LEFTDOWN = 0x02;
+        private const int MOUSEEVENTF_LEFTUP = 0x04;
+        private const int MOUSEEVENTF_RIGHTDOWN = 0x08;
+        private const int MOUSEEVENTF_RIGHTUP = 0x10;
+
         private void Timer_Tick(object sender, EventArgs e)
         {
+            // if a limit is set, check every tick if limit reached
+            if (RepeatUntilLimitRadio.Checked == true)
+            if (clickCount == ClickLimitBox.Value) StopClicker();
+
             // do left or right mouse click
             if (ClickButtonComboBox.Text == "Left Click") DoLeftMouseClick();
             else DoRightMouseClick();
-
-            int rndNum = rnd.Next(1, 11);
-            if (rndNum == 1)
-            {
-                MoveMousePosition();
-            }
             clickCount++;
             CounterLabel.Text = clickCount.ToString();
 
-            // if a limit is set, check every tick if clickCount == limit
-            if (RepeatUntilLimitRadio.Checked == true)
-                if (clickCount == ClickLimitBox.Value) StopClicker();
-        }
+            // MoveMousePosition() and  ChangeInterval() is called each timer tick randomly
+            // this is an attempt to prevent detection
+            int rndNum = rnd.Next(1, 11);
+            if (rndNum == 1) MoveMousePosition();
+            rndNum = rnd.Next(1, 4);
+            if (rndNum == 1) ChangeInterval();
+            // every 25 clicks reset interval to original value
+            if (clickCount % 25 == 0)
+			{
+                Timer.Interval = originalInterval;
+                IntervalBox.Value = originalInterval;
+            }
+		}
 
-        // this sets the current cursor position and calls mouse_event()
         public void DoLeftMouseClick()
         {
             // Call the imported function with the cursor's current position            
@@ -122,40 +130,42 @@ namespace AutoClicker
             mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, X, Y, 0, 0);
         }
 
-        // this moves the mouse position 1 pixel in a square pattern
+        // -------------- these functions are for anti-detection --------------
+        // this will move the mouse position in a square pattern each time it is called 
         private void MoveMousePosition()
         {
             switch (direction)
             {
-                // move up and set next direction to right
                 case 1:
                     Cursor.Position = new Point(Cursor.Position.X, Cursor.Position.Y - 1);
                     direction = 2;
                     break;
-                // move right and set next direction to down
                 case 2:
-                    Cursor.Position = new Point(Cursor.Position.X + 1, Cursor.Position.Y);
+                    Cursor.Position = new Point(Cursor.Position.X + 2, Cursor.Position.Y);
                     direction = 3;
                     break;
-                // move down and set next direction to left
                 case 3:
                     Cursor.Position = new Point(Cursor.Position.X, Cursor.Position.Y + 1);
                     direction = 4;
                     break;
-                // move left and set next direction to up
                 case 4:
-                    Cursor.Position = new Point(Cursor.Position.X - 1, Cursor.Position.Y);
+                    Cursor.Position = new Point(Cursor.Position.X - 2, Cursor.Position.Y);
                     direction = 1;
                     break;
             }
         }
+        // this will change the interval from 1 to 5 milliseconds
+        private void ChangeInterval()
+		{
+            int rndNum = rnd.Next(1, 6);
+            int upOrDown = rnd.Next(1, 3);
+            int newInterval = Timer.Interval += rndNum;
+            if (newInterval < 1) return;
+            if (upOrDown == 1) Timer.Interval = newInterval;
+            else Timer.Interval = newInterval;
+            IntervalBox.Value = Timer.Interval;
+        }
 
         private void BtnClose_Click(object sender, EventArgs e) => Close();
-
-
-
-        // NOTES: study how this is working and get a good idea before continuing
-        // Future plans?
-        // - move the x and y a small amount randomly to prevent detection
     }
 }
