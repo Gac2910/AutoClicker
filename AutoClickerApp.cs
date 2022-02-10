@@ -24,16 +24,18 @@ namespace AutoClicker
         private void AutoClickerApp_Load(object sender, EventArgs e)
         {
             ClickButtonComboBox.SelectedIndex = 0;
-            IntervalBox.Value = 100;
         }
 
         // -------------- this allows for global keyboard presses --------------
         const int mActionHotKeyID = 1;
 
+        // importing an external method from user32.dll
         [DllImport("user32.dll")]
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int key);
-        [DllImport("user32.dll")]
-        public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
+
+        // this external method is not being used in this case
+        //[DllImport("user32.dll")]
+        //public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
 
         protected override void WndProc(ref Message m)
         {
@@ -69,36 +71,52 @@ namespace AutoClicker
             Timer.Enabled = true;
             Timer.Interval = interval;
             BtnStart.Text = "Stop (F6)";
+            BtnStart.BackColor = Color.DarkRed;
             this.Text = "Running - Auto Clicker App";
-            
+
         }
         private void StopClicker()
         {
             Timer.Enabled = false;
             BtnStart.Text = "Start (F6)";
+            BtnStart.BackColor = Color.DarkGreen;
             this.Text = "Stopped - Auto Clicker App";
             clickCount = 0;
         }
 
-        // this is called every timer tick
+        // this is called every timer tick when timer is enabled
         private void Timer_Tick(object sender, EventArgs e)
         {
-            DoMouseClick();
+            if (ClickButtonComboBox.Text == "Left Click")
+            {
+                DoLeftMouseClick();
+            }
+            else
+            {
+                DoRightMouseClick();
+            }
             clickCount++;
             CounterLabel.Text = clickCount.ToString();
 
-            // if limit is set check every tick if clickCount == limit
+            // if a limit is set, check every tick if clickCount == limit
             if (RepeatUntilLimitRadio.Checked == true)
                 if (clickCount == ClickLimitBox.Value) StopClicker();
         }
 
-        // this set the current cursor position and calls mouse_event()
-        public void DoMouseClick()
+        // this sets the current cursor position and calls mouse_event()
+        public void DoLeftMouseClick()
         {
-            //Call the imported function with the cursor's current position            
+            // Call the imported function with the cursor's current position            
             uint Y = (uint)Cursor.Position.Y;
             uint X = (uint)Cursor.Position.X;
             mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, X, Y, 0, 0);
+        }
+        public void DoRightMouseClick()
+        {
+            // Call the imported function with the cursor's current position            
+            uint Y = (uint)Cursor.Position.Y;
+            uint X = (uint)Cursor.Position.X;
+            mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, X, Y, 0, 0);
         }
 
         private void BtnClose_Click(object sender, EventArgs e) => Close();
@@ -107,8 +125,6 @@ namespace AutoClicker
 
         // NOTES: study how this is working and get a good idea before continuing
         // Future plans?
-        // - allow for right OR left click?
         // - move the x and y a small amount randomly to prevent detection
-        // - allow for setting a certain number of clicks OR click until stop
     }
 }
