@@ -21,13 +21,15 @@ namespace AutoClicker
         }
 
         // -------------- on load: set up default settings --------------
+        private Random rnd = new Random();
+        private int direction = 1;
         private void AutoClickerApp_Load(object sender, EventArgs e)
         {
             ClickButtonComboBox.SelectedIndex = 0;
         }
 
         // -------------- this allows for global keyboard presses --------------
-        const int mActionHotKeyID = 1;
+        private const int mActionHotKeyID = 1;
 
         // importing an external method from user32.dll
         [DllImport("user32.dll")]
@@ -87,13 +89,14 @@ namespace AutoClicker
         // this is called every timer tick when timer is enabled
         private void Timer_Tick(object sender, EventArgs e)
         {
-            if (ClickButtonComboBox.Text == "Left Click")
+            // do left or right mouse click
+            if (ClickButtonComboBox.Text == "Left Click") DoLeftMouseClick();
+            else DoRightMouseClick();
+
+            int rndNum = rnd.Next(1, 11);
+            if (rndNum == 1)
             {
-                DoLeftMouseClick();
-            }
-            else
-            {
-                DoRightMouseClick();
+                MoveMousePosition();
             }
             clickCount++;
             CounterLabel.Text = clickCount.ToString();
@@ -117,6 +120,34 @@ namespace AutoClicker
             uint Y = (uint)Cursor.Position.Y;
             uint X = (uint)Cursor.Position.X;
             mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, X, Y, 0, 0);
+        }
+
+        // this moves the mouse position 1 pixel in a square pattern
+        private void MoveMousePosition()
+        {
+            switch (direction)
+            {
+                // move up and set next direction to right
+                case 1:
+                    Cursor.Position = new Point(Cursor.Position.X, Cursor.Position.Y - 1);
+                    direction = 2;
+                    break;
+                // move right and set next direction to down
+                case 2:
+                    Cursor.Position = new Point(Cursor.Position.X + 1, Cursor.Position.Y);
+                    direction = 3;
+                    break;
+                // move down and set next direction to left
+                case 3:
+                    Cursor.Position = new Point(Cursor.Position.X, Cursor.Position.Y + 1);
+                    direction = 4;
+                    break;
+                // move left and set next direction to up
+                case 4:
+                    Cursor.Position = new Point(Cursor.Position.X - 1, Cursor.Position.Y);
+                    direction = 1;
+                    break;
+            }
         }
 
         private void BtnClose_Click(object sender, EventArgs e) => Close();
